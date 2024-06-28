@@ -99,12 +99,19 @@ class Tapper:
             "User-Agent": user_agent
         }
 
+        proxy = None
+        if self.proxy:
+            proxy = f"http://{self.proxy.host}:{self.proxy.port}"
+            proxy_auth = aiohttp.BasicAuth(self.proxy.login, self.proxy.password)
+        else:
+            proxy_auth = None
+
         async with aiohttp.ClientSession() as session:
             async with session.ws_connect(
                 url,
                 headers=headers,
-                proxy=f"http://{self.proxy.host}:{self.proxy.port}",
-                proxy_auth=aiohttp.BasicAuth(self.proxy.login, self.proxy.password)
+                proxy=proxy,
+                proxy_auth=proxy_auth
             ) as websocket:
                 await self.send_message(websocket)
                 await self.listen(websocket, init_data_base64)
@@ -222,15 +229,18 @@ class Tapper:
             "User-Agent": generate_random_user_agent(device_type='android', browser_type='chrome')
         }
 
-        async with aiohttp.ClientSession(
-            connector=ProxyConnector(
+        if self.proxy:
+            connector = ProxyConnector(
                 proxy_type=ProxyType.HTTP,
                 host=self.proxy.host,
                 port=self.proxy.port,
                 username=self.proxy.login,
                 password=self.proxy.password
             )
-        ) as session:
+        else:
+            connector = None
+
+        async with aiohttp.ClientSession(connector=connector) as session:
             async with session.get(
                 'https://cmonkey.vip/api/users/tasks',
                 headers=headers
@@ -257,15 +267,19 @@ class Tapper:
         }
 
         payload = json.dumps({"task": task_id})
-        async with aiohttp.ClientSession(
-            connector=ProxyConnector(
+
+        if self.proxy:
+            connector = ProxyConnector(
                 proxy_type=ProxyType.HTTP,
                 host=self.proxy.host,
                 port=self.proxy.port,
                 username=self.proxy.login,
                 password=self.proxy.password
             )
-        ) as session:
+        else:
+            connector = None
+
+        async with aiohttp.ClientSession(connector=connector) as session:
             async with session.put(
                 'https://cmonkey.vip/api/users/tasks',
                 headers=headers,
